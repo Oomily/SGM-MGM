@@ -22,7 +22,7 @@ void colorize_disparity(const cv::Mat& src, cv::Mat& dst, int disp_size, cv::Inp
 {
 	cv::Mat tmp;
 	src.convertTo(tmp, CV_8U, 255. / disp_size);
-	cv::applyColorMap(tmp, dst, cv::COLORMAP_TURBO);
+	cv::applyColorMap(tmp, dst, cv::COLORMAP_INFERNO); // version of OpenCV on cluster doesn't have TURBO
 
 	if (!mask.empty())
 		dst.setTo(0, mask);

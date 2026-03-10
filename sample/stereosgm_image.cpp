@@ -45,8 +45,12 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 
-	cv::Mat I1 = cv::imread(parser.get<cv::String>("@left_img"), cv::IMREAD_UNCHANGED);
-	cv::Mat I2 = cv::imread(parser.get<cv::String>("@right_img"), cv::IMREAD_UNCHANGED);
+	// Middlebury isn't grayscale already
+	cv::Mat I1 = cv::imread(parser.get<cv::String>("@left_img"), cv::IMREAD_GRAYSCALE);
+	cv::Mat I2 = cv::imread(parser.get<cv::String>("@right_img"), cv::IMREAD_GRAYSCALE);
+	// See if resize gives less garbage (original benchmarking was on 1024 x 440)
+	cv::resize(I1, I1, cv::Size(), 0.5, 0.5, cv::INTER_AREA);
+	cv::resize(I2, I2, cv::Size(), 0.5, 0.5, cv::INTER_AREA);
 
 	const int disp_size = parser.get<int>("disp_size");
 	const int P1 = parser.get<int>("P1");
@@ -69,7 +73,8 @@ int main(int argc, char* argv[])
 	ASSERT_MSG(disp_size == 64 || disp_size == 128 || disp_size == 256, "disparity size must be 64, 128 or 256.");
 	ASSERT_MSG(num_paths == 4 || num_paths == 8, "number of scanlines must be 4 or 8.");
 	ASSERT_MSG(census_type == sgm::CensusType::CENSUS_9x7 || census_type == sgm::CensusType::SYMMETRIC_CENSUS_9x7, "census type must be 0 or 1.");
-
+	std::cout << "Size: " << I1.cols << "x" << I1.rows 
+			<< " Type: " << I1.type() << std::endl;
 	const int src_depth = I1.type() == CV_8U ? 8 : 16;
 	const int dst_depth = 16;
 	const sgm::PathType path_type = num_paths == 8 ? sgm::PathType::SCAN_8PATH : sgm::PathType::SCAN_4PATH;
@@ -87,11 +92,13 @@ int main(int argc, char* argv[])
 	// show image
 	cv::Mat disparity_8u, disparity_color;
 	disparity.convertTo(disparity_8u, CV_8U, 255. / disp_size);
-	cv::applyColorMap(disparity_8u, disparity_color, cv::COLORMAP_TURBO);
+	cv::applyColorMap(disparity_8u, disparity_color, cv::COLORMAP_INFERNO); // version of OpenCV on cluster doesn't have TURBO
 	disparity_8u.setTo(0, mask);
 	disparity_color.setTo(cv::Scalar::all(0), mask);
 	if (I1.type() != CV_8U)
 		cv::normalize(I1, I1, 0, 255, cv::NORM_MINMAX, CV_8U);
+
+	/**** No GUI available
 
 	const std::vector<cv::Mat> images = { disparity_8u, disparity_color, I1 };
 	const std::vector<std::string> titles = { "disparity", "disparity color", "input" };
@@ -99,6 +106,7 @@ int main(int argc, char* argv[])
 	std::cout << "Hot keys:" << std::endl;
 	std::cout << "\tESC - quit the program" << std::endl;
 	std::cout << "\ts - switch display (disparity | colored disparity | input image)" << std::endl;
+
 
 	int mode = 0;
 	while (true) {
@@ -112,6 +120,9 @@ int main(int argc, char* argv[])
 		if (c == 27)
 			break;
 	}
+	*****/ 
+	cv::imwrite("resized.png", I1);
+	cv::imwrite("disparity.png", disparity_color);
 
 	return 0;
 }
